@@ -51,12 +51,13 @@ export default function HomePage() {
   useEffect(() => {
     const client = getSupabase()
     if (!client) return
+    const supabase = client as NonNullable<typeof client>
 
     async function load() {
       const [{ data: b }, { data: w }, { data: wk }] = await Promise.all([
-        client.from('batches').select('*').eq('status', 'open').order('created_at'),
-        client.from('leaderboard').select('*').order('created_at', { ascending: false }).limit(6),
-        client.from('weeks').select('status').order('week_number', { ascending: false }).limit(1).single(),
+        supabase.from('batches').select('*').eq('status', 'open').order('created_at'),
+        supabase.from('leaderboard').select('*').order('created_at', { ascending: false }).limit(6),
+        supabase.from('weeks').select('status').order('week_number', { ascending: false }).limit(1).single(),
       ])
       if (b) setBatches(b)
       if (w) setWinners(w)
@@ -64,10 +65,10 @@ export default function HomePage() {
     }
     load()
 
-    const channel = client.channel('home-batches')
+    const channel = supabase.channel('home-batches')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, load)
       .subscribe()
-    return () => { client.removeChannel(channel) }
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   const fc26 = batches.filter(b => b.game === 'FC26')
