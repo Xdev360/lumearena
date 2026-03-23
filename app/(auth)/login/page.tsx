@@ -75,10 +75,20 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoad(true)
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/api/auth/google-callback` }
+      options: {
+        redirectTo: `${window.location.origin}/api/auth/google-callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        }
+      }
     })
+    if (error) {
+      setError('Google sign in failed. Try again.')
+      setGoogleLoad(false)
+    }
   }
 
   const ready = email && password && (tab === 'login' || (nickname.length >= 3 && nickOk !== false))

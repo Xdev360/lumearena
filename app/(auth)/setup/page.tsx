@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -19,6 +19,7 @@ export default function SetupPage() {
   const router  = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const [loadingPlayer, setLoadingPlayer] = useState(true)
   const [fullName, setFullName]     = useState('')
   const [nickname, setNickname]     = useState('')
   const [nickErr, setNickErr]       = useState('')
@@ -30,6 +31,22 @@ export default function SetupPage() {
   const [uploading, setUploading]   = useState(false)
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(({ player }) => {
+        if (player) {
+          if (player.full_name) setFullName(player.full_name)
+          if (player.avatar_url?.startsWith('http')) {
+            setPreview(player.avatar_url)
+            setUseUpload(true)
+          }
+        }
+        setLoadingPlayer(false)
+      })
+      .catch(() => setLoadingPlayer(false))
+  }, [])
 
   async function checkNick(val: string) {
     const clean = val.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20)

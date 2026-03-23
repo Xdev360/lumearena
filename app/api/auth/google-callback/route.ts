@@ -4,12 +4,12 @@ import { createSession } from '@/lib/auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const supabaseAuth = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_KEY!
 )
 
 export async function GET(req: NextRequest) {
@@ -17,69 +17,72 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get('code')
 
   if (!code) {
-    console.error('No code received')
     return NextResponse.redirect(new URL('/login?error=no_code', req.url))
   }
 
   try {
-    // Exchange code for session using anon client
-    const { data, error } = await supabaseAuth.auth.exchangeCodeForSession(code)
+    // Exchange code for session
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error || !data.user) {
-      console.error('Exchange error:', error)
-      return NextResponse.redirect(new URL('/login?error=exchange_failed', req.url))
+      console.error('OAuth error:', error)
+      return NextResponse.redirect(new URL('/login?error=oauth_failed', req.url))
     }
 
-    const user  = data.user
-    const email = user.email ?? ''
+    const user      = data.user
+    const email     = user.email ?? ''
+    const fullName  = user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''
+    const avatarUrl = user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? ''
 
-    // Find or create player in our players table
-    let { data: player } = await supabase
+    // Check if player already exists
+    let { data: existing } = await supabaseAdmin
       .from('players')
-      .select('id, onboarded')
+      .select('id, onboarded, nickname')
       .eq('email', email)
       .maybeSingle()
 
-    if (!player) {
-      const { data: newPlayer, error: insertErr } = await supabase
+    if (!existing) {
+      // New player — create account with Google data
+      const { data: newPlayer, error: createErr } = await supabaseAdmin
         .from('players')
         .insert({
           email,
-          full_name:  user.user_metadata?.full_name ?? '',
-          avatar_url: user.user_metadata?.avatar_url ?? '',
-          onboarded:  false
+          full_name:    fullName,
+          avatar_url:   avatarUrl,
+          onboarded:    false,
+          total_points: 0,
+          total_wins:   0,
+          total_losses: 0,
+          total_matches: 0,
+          total_prizes: 0,
         })
-        .select('id, onboarded')
+        .select('id, onboarded, nickname')
         .single()
 
-      if (insertErr) {
-        console.error('Insert error:', insertErr)
-        return NextResponse.redirect(new URL('/login?error=player_failed', req.url))
+      if (createErr || !newPlayer) {
+        console.error('Create player error:', createErr)
+        return NextResponse.redirect(new URL('/login?error=create_failed', req.url))
       }
 
-      player = newPlayer
-    }
-
-    if (!player) {
-      return NextResponse.redirect(new URL('/login?error=no_player', req.url))
+      existing = newPlayer
     }
 
     // Create our own session cookie
-    const token    = await createSession(player.id)
-    const dest     = player.onboarded ? '/dashboard' : '/setup'
-    const response = NextResponse.redirect(new URL(dest, req.url))
+    const token = await createSession(existing.id)
+
+    // Decide where to redirect
+    // If onboarded → dashboard
+    // If not onboarded but has nickname → dashboard
+    // If not onboarded and no nickname → setup (just need nickname)
+    const destination = (existing.onboarded || existing.nickname)
+      ? '/dashboard'
+      : '/setup'
+
+    const response = NextResponse.redirect(new URL(destination, req.url))
 
     response.cookies.set('lume_session', token, {
       httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge:   30 * 24 * 60 * 60,
-      path:     '/'
-    })
-
-    response.cookies.set('lume_onboarded', player.onboarded ? '1' : '0', {
-      httpOnly: false,
-      secure:   process.env.NODE_ENV === 'production',
+      secure:   true,
       sameSite: 'lax',
       maxAge:   30 * 24 * 60 * 60,
       path:     '/'
@@ -87,8 +90,8 @@ export async function GET(req: NextRequest) {
 
     return response
 
-  } catch (e: any) {
-    console.error('Callback error:', e.message)
+  } catch (err: unknown) {
+    console.error('Callback exception:', err instanceof Error ? err.message : err)
     return NextResponse.redirect(new URL('/login?error=server_error', req.url))
   }
 }
