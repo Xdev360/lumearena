@@ -666,3 +666,19 @@ a { color: inherit; }
 @media (min-width: 640px) {
   .page { padding: var(--sp-8) var(--sp-6) var(--sp-10); }
 }
+
+/* ── TICKER ANIMATION ── */
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 30s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}

@@ -79,13 +79,19 @@ export default function HomePage() {
   return (
     <main style={{ background: '#080808', minHeight: '100vh' }}>
 
-      {/* ── TICKER ── */}
-      <div style={{ background: '#003E31', overflow: 'hidden', height: 36, display: 'flex', alignItems: 'center' }}>
-        <div style={{ display: 'flex', animation: 'ticker 22s linear infinite', whiteSpace: 'nowrap', gap: 64 }}>
-          {[...Array(6)].map((_, i) => (
-            <span key={i} style={{ fontSize: 11, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: 4, color: '#BEFF00', textTransform: 'uppercase' }}>
-              LUME Arena Weekly Tournament &nbsp;·&nbsp; 1st Place ₦80,000 &nbsp;·&nbsp; 2nd Place ₦50,000 &nbsp;·&nbsp; Entry ₦30,000 &nbsp;·&nbsp;
-            </span>
+      {/* Ticker wrapper */}
+      <div style={{ overflow: 'hidden', borderBottom: '0.5px solid #111', borderTop: '0.5px solid #111', background: '#0C0C0C', padding: '10px 0' }}>
+        <div className="ticker-track">
+          {/* Duplicate content twice for seamless loop */}
+          {[...Array(2)].map((_, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 0, whiteSpace: 'nowrap' }}>
+              {['LUME Arena Weekly Tournament', '1st Place ₦80,000', '2nd Place ₦50,000', 'Entry ₦30,000', 'EA FC 26', 'Mortal Kombat', 'Every Week', 'Lagos Nigeria'].map((item, j) => (
+                <span key={j} style={{ display: 'inline-flex', alignItems: 'center', gap: 16, padding: '0 24px', fontSize: 12, fontWeight: 700, color: j % 2 === 0 ? '#fff' : '#BEFF00', letterSpacing: 1, textTransform: 'uppercase' }}>
+                  {item}
+                  <span style={{ color: '#333', fontSize: 16 }}>·</span>
+                </span>
+              ))}
+            </div>
           ))}
         </div>
       </div>
