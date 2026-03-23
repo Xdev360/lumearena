@@ -8,6 +8,8 @@ import Link from 'next/link'
 import Button from '@/components/ui/Button'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Badge from '@/components/ui/Badge'
+import Footer from '@/components/layout/Footer'
+import PublicNav from '@/components/layout/PublicNav'
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -51,13 +53,13 @@ export default function HomePage() {
   useEffect(() => {
     const client = getSupabase()
     if (!client) return
-    const supabase = client as NonNullable<typeof client>
+    const safeClient = client
 
     async function load() {
       const [{ data: b }, { data: w }, { data: wk }] = await Promise.all([
-        supabase.from('batches').select('*').eq('status', 'open').order('created_at'),
-        supabase.from('leaderboard').select('*').order('created_at', { ascending: false }).limit(6),
-        supabase.from('weeks').select('status').order('week_number', { ascending: false }).limit(1).single(),
+        safeClient.from('batches').select('*').eq('status', 'open').order('created_at'),
+        safeClient.from('leaderboard').select('*').order('created_at', { ascending: false }).limit(6),
+        safeClient.from('weeks').select('status').order('week_number', { ascending: false }).limit(1).single(),
       ])
       if (b) setBatches(b)
       if (w) setWinners(w)
@@ -65,10 +67,10 @@ export default function HomePage() {
     }
     load()
 
-    const channel = supabase.channel('home-batches')
+    const channel = safeClient.channel('home-batches')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, load)
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => { safeClient.removeChannel(channel) }
   }, [])
 
   const fc26 = batches.filter(b => b.game === 'FC26')
@@ -89,23 +91,7 @@ export default function HomePage() {
       </div>
 
       {/* ── NAVBAR ── */}
-      <nav style={{ padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '0.5px solid #111', position: 'sticky', top: 0, background: 'rgba(8,8,8,0.92)', backdropFilter: 'blur(12px)', zIndex: 50 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, background: '#BEFF00', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 14, fontWeight: 900, color: '#003E31', fontFamily: 'var(--font-display)' }}>LA</span>
-          </div>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 14, letterSpacing: 2, color: '#fff' }}>LUME ARENA</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Link href="/batches" style={{ fontSize: 12, color: '#666', textDecoration: 'none', padding: '6px 12px' }}>Batches</Link>
-          <Link href="/leaderboard" style={{ fontSize: 12, color: '#666', textDecoration: 'none', padding: '6px 12px' }}>Leaderboard</Link>
-          <Link href="/login">
-            <button style={{ background: '#BEFF00', color: '#080808', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 12, fontWeight: 900, fontFamily: 'var(--font-display)', cursor: 'pointer', letterSpacing: 1 }}>
-              REGISTER
-            </button>
-          </Link>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* ── HERO ── */}
       <section style={{ padding: '80px 24px 64px', maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
@@ -131,14 +117,14 @@ export default function HomePage() {
             Every week. Real money prizes.
           </motion.p>
 
-          <motion.div variants={fadeUp} style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 56 }}>
-            <Link href={weekOpen ? '/register' : '/login'}>
-              <button style={{ background: '#BEFF00', color: '#080808', border: 'none', borderRadius: 10, padding: '16px 36px', fontSize: 15, fontWeight: 900, fontFamily: 'var(--font-display)', cursor: 'pointer', letterSpacing: 1 }}>
-                {weekOpen ? 'REGISTER NOW' : 'CREATE ACCOUNT'}
+          <motion.div variants={fadeUp} style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 40 }}>
+            <Link href="/login">
+              <button style={{ background: '#BEFF00', color: '#080808', border: 'none', borderRadius: 10, padding: '15px 32px', fontSize: 14, fontWeight: 900, fontFamily: "'Arial Black',Arial", cursor: 'pointer', letterSpacing: 1 }}>
+                SIGN IN / SIGN UP →
               </button>
             </Link>
             <Link href="/batches">
-              <button style={{ background: 'transparent', color: '#fff', border: '0.5px solid #222', borderRadius: 10, padding: '16px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+              <button style={{ background: 'transparent', color: '#fff', border: '0.5px solid #222', borderRadius: 10, padding: '15px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 View Batches
               </button>
             </Link>
@@ -258,18 +244,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── FOOTER ── */}
-      <footer style={{ padding: '40px 24px', borderTop: '0.5px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, background: '#BEFF00', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 11, fontWeight: 900, color: '#003E31', fontFamily: 'var(--font-display)' }}>LA</span>
-          </div>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 2, color: '#333' }}>LUME ARENA</span>
-        </div>
-        <div style={{ fontSize: 12, color: '#333' }}>WhatsApp: 09134071813</div>
-        <div style={{ fontSize: 11, color: '#222' }}>© 2025 LUME Arena. All rights reserved.</div>
-      </footer>
-
+      <Footer />
     </main>
   )
 }
