@@ -29,6 +29,7 @@ type BatchPlayer = {
   id: string
   player_id: string
   full_name: string
+  nickname?: string | null
   whatsapp: string
   slot_number: number
   payment_status: string
@@ -97,11 +98,17 @@ export default function AdminBatches() {
 
     const { data } = await supabase
       .from('registrations')
-      .select('id, player_id, full_name, whatsapp, slot_number, payment_status, game')
+      .select('id, player_id, full_name, whatsapp, slot_number, payment_status, game, player:players(nickname)')
       .eq('batch_id', batchId)
       .order('slot_number')
 
-    if (data) setPlayers(prev => ({ ...prev, [batchId]: data as BatchPlayer[] }))
+    if (data) {
+      const rows = (data as (BatchPlayer & { player?: { nickname?: string | null } | null })[]).map(r => {
+        const { player, ...rest } = r
+        return { ...rest, nickname: player?.nickname ?? null } as BatchPlayer
+      })
+      setPlayers(prev => ({ ...prev, [batchId]: rows }))
+    }
     setExpanded(batchId)
   }
 
@@ -291,20 +298,69 @@ export default function AdminBatches() {
                   players[batch.id].map((p, i) => (
                     <div
                       key={p.id}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderBottom: i < players[batch.id].length - 1 ? '0.5px solid #0a0a0a' : 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderBottom: i < players[batch.id].length - 1 ? '0.5px solid #0a0a0a' : 'none' }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 24, height: 24, background: '#111', border: '0.5px solid #1A1A1A', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#BEFF00', fontFamily: "'Arial Black',Arial" }}>
-                          {p.slot_number ?? i + 1}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{p.full_name}</div>
-                          <div style={{ fontSize: 11, color: '#333' }}>{p.whatsapp}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{p.full_name || p.nickname}</div>
+                        <div style={{ fontSize: 11, color: '#444' }}>
+                          Slot #{p.slot_number ?? i + 1} · {p.payment_status}
+                          {p.whatsapp ? ` · ${p.whatsapp}` : ''}
                         </div>
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: p.payment_status === 'confirmed' ? '#BEFF00' : '#E24B4A', letterSpacing: 2, textTransform: 'uppercase' }}>
-                        {p.payment_status}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!window.confirm(`Remove ${p.nickname || p.full_name} from Batch ${batch.label}?`)) return
+
+                          const res = await fetch('/api/admin/remove-from-batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              registration_id: p.id,
+                              player_id: p.player_id,
+                              batch_id: batch.id,
+                            }),
+                          })
+
+                          const data = await res.json()
+                          if (data.success) {
+                            setPlayers(prev => ({
+                              ...prev,
+                              [batch.id]: prev[batch.id].filter(x => x.id !== p.id),
+                            }))
+                            setBatches(prev =>
+                              prev.map(b =>
+                                b.id === batch.id
+                                  ? { ...b, slots_filled: Math.max(0, b.slots_filled - 1), status: 'open' as BatchStatus }
+                                  : b,
+                              ),
+                            )
+                          } else {
+                            alert('Failed to remove player')
+                          }
+                        }}
+                        style={{
+                          background: 'none',
+                          border: '0.5px solid #1A1A1A',
+                          borderRadius: 7,
+                          padding: '6px 12px',
+                          fontSize: 11,
+                          color: '#444',
+                          cursor: 'pointer',
+                          transition: 'all .15s',
+                          whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={e => {
+                          ;(e.currentTarget as HTMLElement).style.borderColor = '#E24B4A'
+                          ;(e.currentTarget as HTMLElement).style.color = '#E24B4A'
+                        }}
+                        onMouseLeave={e => {
+                          ;(e.currentTarget as HTMLElement).style.borderColor = '#1A1A1A'
+                          ;(e.currentTarget as HTMLElement).style.color = '#444'
+                        }}
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))
                 )}
