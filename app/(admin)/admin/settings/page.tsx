@@ -44,11 +44,23 @@ export default function AdminSettings() {
 
   async function saveBank() {
     setSaving(true); setSaved(false)
-    await supabase.from('bank_settings').upsert({
-      ...bank, is_active: true, updated_at: new Date().toISOString()
+
+    const res = await fetch('/api/admin/save-bank', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(bank)
     })
-    setSaving(false); setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+
+    const data = await res.json()
+
+    if (data.success) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } else {
+      alert('Save failed: ' + data.error)
+    }
+
+    setSaving(false)
   }
 
   async function saveLink(batchId: string) {
