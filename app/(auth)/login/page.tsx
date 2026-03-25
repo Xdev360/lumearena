@@ -75,18 +75,23 @@ export default function LoginPage() {
 
   async function handleGoogle() {
     setGoogleLoad(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/google-callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'select_account',
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `https://lumearena.vercel.app/api/auth/google-callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
+      })
+      if (error) {
+        setError('Google sign in failed. Try again.')
+        setGoogleLoad(false)
       }
-    })
-    if (error) {
-      setError('Google sign in failed. Try again.')
+    } catch {
+      setError('Something went wrong. Try again.')
       setGoogleLoad(false)
     }
   }
