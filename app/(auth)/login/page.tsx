@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [whatsapp, setWhatsapp] = useState('')
   const [showPw, setShowPw]     = useState(false)
   const [loading, setLoading]   = useState(false)
-  const [googleLoad, setGoogleLoad] = useState(false)
+  // const [googleLoad, setGoogleLoad] = useState(false)
   const [error, setError]       = useState('')
   const [nickOk, setNickOk]     = useState<null|boolean>(null)
 
@@ -73,6 +73,7 @@ export default function LoginPage() {
     }
   }
 
+  /*
   async function handleGoogle() {
     setGoogleLoad(true)
     try {
@@ -95,6 +96,7 @@ export default function LoginPage() {
       setGoogleLoad(false)
     }
   }
+  */
 
   const ready = email && password && (tab === 'login' || (nickname.length >= 3 && nickOk !== false))
 
@@ -124,7 +126,7 @@ export default function LoginPage() {
             </p>
           </motion.div>
 
-          {/* Google */}
+          {/* Google sign-in — disabled; uncomment + handleGoogle + googleLoad state to restore
           <button onClick={handleGoogle} disabled={googleLoad}
             style={{ width: '100%', minHeight: 48, background: '#fff', color: '#1a1a1a', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14, opacity: googleLoad ? .7 : 1 }}>
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -139,6 +141,7 @@ export default function LoginPage() {
           <div className="divider-label" style={{ marginBottom: 14 }}>
             <span>OR</span>
           </div>
+          */}
 
           {/* Tabs */}
           <div className="tab-bar">
